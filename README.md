@@ -1,63 +1,87 @@
-# New Shortcut Context Menu Prototype
-# For adding "Create Shortcut" wizard to Windows 11 primary context menu
+# Win11 Shortcut in Primary Context Menu
 
-## Overview
-This prototype adds a "Shortcut" command directly to the Windows 11 primary context menu (not under "Show more options") using:
-- `IExplorerCommand` COM interface
-- Sparse MSIX package for app identity
-- `rundll32 appwiz.cpl,NewLinkHere` to invoke the actual Create Shortcut wizard
+Add "Shortcut" directly to the Windows 11 primary right-click context menu (Desktop and folder backgrounds). This launches the same "Create Shortcut" wizard as `New > Shortcut`.
 
-## Requirements
-- Windows 11 (build 22000+)
-- Visual Studio 2022 with C++ workload
-- Windows 11 SDK
-- Administrator privileges for registration
+**Verified on Windows 11 26H2 (build 26300). Results may vary on other builds.**
 
-## Build Instructions
+## What's in this repo
 
-### 1. Build the DLL
-Open "Developer Command Prompt for VS 2022" in this directory and run:
-```batch
-scripts\build.bat
-```
+This repository contains the **prototype/source** for the `NewShortcutContextMenu` implementation:
 
-Or manually:
-```batch
-cl /c /EHsc /std:c++17 /MD src\*.cpp /Fobuild\
-link /DLL /DEF:src\NewShortcutContextMenu.def /OUT:build\NewShortcutContextMenu.dll build\*.obj shlwapi.lib shell32.lib user32.lib ole32.lib oleaut32.lib uuid.lib runtimeobject.lib
-```
+- `src/` – C++ `IExplorerCommand` COM handler (`NewShortcutCommand`)
+- `Package/` – Sparse MSIX manifest, files needed for registration
+- `scripts/` – Helper scripts for building/registering
+- `README.md` – This file
 
-### 2. Create minimal host executable (optional)
-The manifest references `NewShortcutHost.exe` but for sparse packages with external content, we can create a dummy exe or use an existing one.
+This is the custom implementation that makes the primary-menu "Shortcut" entry possible on modern Windows 11. It uses package identity (sparse MSIX) rather than a legacy registry-only tweak.
 
-### 3. Register the sparse package
-Run PowerShell as Administrator:
+## For end users (easiest way)
+
+**If you just want to install it and use it:**
+
+1. Go to the [Releases](https://github.com/faDeny/Win11ShortcutNewContextMenu/releases) page (if available) and download the latest release ZIP, or download this repo as ZIP from the green `Code > Download ZIP` button.
+2. Extract to a **fixed location** (e.g. `C:\Tools\Win11ShortcutNewContextMenu\`). Do **not** move it after installation.
+3. Open PowerShell as Administrator in that extracted folder.
+4. Run the installer script (see below). It will trust the certificate, register the package, and restart Explorer.
+5. Done. Right-click Desktop or folder background → you'll see `Shortcut` in the primary menu.
+
+### Quick install (using this repo)
+
+From an elevated PowerShell in the extracted folder:
+
 ```powershell
-.\scripts\Register-SparsePackage.ps1
+# Allow script execution for this session
+Set-ExecutionPolicy -Scope Process Bypass -Force
+
+# Run installer (if present) OR follow manual steps
+.\Install.ps1
 ```
 
-### 4. Test
-Right-click on Desktop, or in a folder background. You should see "Shortcut" in the primary context menu. Clicking it will open the Create Shortcut wizard.
+If `Install.ps1` isn't present yet, use the manual steps in the sections below.
 
-### 5. Unregister
+## Manual install (detailed)
+
+### 1) Trust the certificate
 ```powershell
-.\scripts\Unregister-SparsePackage.ps1
+$root = (Get-Location).Path
+$cert = New-SelfSignedCertificate -Type Custom -Subject "CN=NewShortcutTest" -KeyUsage DigitalSignature -FriendlyName "NewShortcutTest" -CertStoreLocation "Cert:\CurrentUser\My" -TextExtension @("2.5.29.37={text}1.3.6.1.5.5.7.3.3")
+$pwd = ConvertTo-SecureString -String "test123" -Force -AsPlainText
+Export-PfxCertificate -Cert $cert -FilePath "$root\NewShortcutTest.pfx" -Password $pwd | Out-Null
+Import-PfxCertificate -FilePath "$root\NewShortcutTest.pfx" -CertStoreLocation Cert:\LocalMachine\TrustedPeople -Password $pwd | Out-Null
 ```
+
+### 2) Register
+```powershell
+Get-AppxPackage -Name "*NewShortcut*" | Remove-AppxPackage -ErrorAction SilentlyContinue
+Start-Sleep -Seconds 2
+Add-AppxPackage -ExternalLocation ".\Package" -Path ".\Package\AppxManifest.xml" -Register
+```
+
+### 3) Restart Explorer
+```powershell
+Get-Process explorer -ErrorAction SilentlyContinue | Stop-Process -Force
+Start-Sleep -Seconds 2
+Start-Process explorer.exe
+```
+
+## Uninstall / Remove
+
+```powershell
+Get-AppxPackage -Name "*NewShortcut*" | Remove-AppxPackage -ErrorAction SilentlyContinue
+Get-Process explorer -ErrorAction SilentlyContinue | Stop-Process -Force
+Start-Sleep -Seconds 2
+Start-Process explorer.exe
+```
+
+You can delete the folder after unregistering if you want.
 
 ## Notes
-- This uses the same wizard as "New > Shortcut" via `appwiz.cpl,NewLinkHere`
-- Registration requires package identity via sparse MSIX
-- The CLSID is `A7F9B3E2-8D4C-4A1E-9F2B-6C8E1A3D5F7B` - change for your own use
-- Publisher in manifest needs to match your certificate if signing
-- For testing without signing, some builds allow unsigned sparse packages in developer mode
 
-## Troubleshooting
-- If it doesn't appear in primary menu, check Settings > Privacy & Security > For developers (Developer Mode)
-- Use "Show more options" to see if it appears there (classic menu)
-- Check Event Viewer for COM/shell errors
-- Restart Explorer after registration: `taskkill /f /im explorer.exe && start explorer.exe`
+- This requires Windows 11 (modern context menu). On older builds it won't appear.
+- The DLL is signed with a test certificate included for convenience. You may need to trust it.
+- Keep the extracted folder in place - sparse package registration references it via `-ExternalLocation`.
+- This adds the entry to the **primary** context menu, not under "Show more options".
 
-## References
-- [Integrate packaged app with File Explorer](https://learn.microsoft.com/en-us/windows/apps/desktop/modernize/integrate-packaged-app-with-file-explorer)
-- [nppShell](https://github.com/notepad-plus-plus/nppShell)
-- [IExplorerCommand](https://learn.microsoft.com/en-us/windows/win32/api/shobjidl_core/nn-shobjidl_core-iexplorercommand)
+## For developers
+
+If you want to rebuild from source, see `SuperUser_Tutorial.MD` or look in `src/` and `scripts/`.
