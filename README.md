@@ -1,4 +1,5 @@
 # Win11 Shortcut in Primary Context Menu
+<img width="277" height="458" alt="Shortcut in Windows 11 primary Context menu" src="https://github.com/user-attachments/assets/364a27b7-290d-4c3d-8ac0-2ffa07d7a56c" />
 
 Adds a `Shortcut` entry directly to the Windows 11 primary context menu (Desktop and folder backgrounds) that opens the exact same "Create Shortcut" wizard as `New > Shortcut`.
 
@@ -8,14 +9,16 @@ Verified on Windows 11 26H2 (build 26300). Results may vary on other builds.
 
 1. Download from [Releases](https://github.com/faDeny/Win11ShortcutNewContextMenu/releases) or `Code > Download ZIP` from this repo.
 2. Extract to a fixed location (e.g. `C:\Tools\Win11ShortcutNewContextMenu\`). **Do not move it after install.**
-3. Right-click `Install.ps1` → `Run as Administrator`.
-4. Done. `Shortcut` will appear in the primary right-click menu.
+3. Right-click `Menu.ps1` → `Run with PowerShell`. Accept the UAC prompt.
+4. Type `1` and press Enter to install.
+5. Done. `Shortcut` will appear in the primary right-click menu.
 
 To remove it, run `Uninstall.ps1` as Administrator. You can delete the folder after uninstalling.
 
 ## What's in this repo
 
-- `Install.ps1` / `Uninstall.ps1` – One-click install/uninstall for end users
+- `Menu.ps1` – Simple menu that auto-elevates and lets you choose Install or Uninstall
+- `Install.ps1` / `Uninstall.ps1` – Install/uninstall scripts used by the menu (can also be run directly in an elevated terminal)
 - `Package/` – Sparse MSIX files used for registration (`AppxManifest.xml`, signed `NewShortcutContextMenu.dll`, `NewShortcutHost.exe`, icons)
 - `src/` – C++ source code for the `IExplorerCommand` COM handler
 - `scripts/` – Helper scripts for building and manual registration
