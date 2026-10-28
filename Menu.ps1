@@ -9,10 +9,38 @@ if (-not ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdenti
 
 $scriptRoot = Split-Path -Parent $MyInvocation.MyCommand.Definition
 
+function Enable-Sideloading {
+    Write-Host "Checking sideloading/developer settings..." -ForegroundColor Yellow
+    
+    $regPath = "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\AppModelUnlock"
+    if (-not (Test-Path $regPath)) {
+        New-Item -Path $regPath -Force | Out-Null
+    }
+    
+    $devLicense = Get-ItemProperty -Path $regPath -Name "AllowDevelopmentWithoutDevLicense" -ErrorAction SilentlyContinue
+    if (-not $devLicense -or $devLicense.AllowDevelopmentWithoutDevLicense -ne 1) {
+        New-ItemProperty -Path $regPath -Name "AllowDevelopmentWithoutDevLicense" -Value 1 -PropertyType DWord -Force | Out-Null
+        Write-Host "Enabled: AllowDevelopmentWithoutDevLicense" -ForegroundColor Green
+    }
+    
+    $allowAll = Get-ItemProperty -Path $regPath -Name "AllowAllTrustedApps" -ErrorAction SilentlyContinue
+    if (-not $allowAll -or $allowAll.AllowAllTrustedApps -ne 1) {
+        New-ItemProperty -Path $regPath -Name "AllowAllTrustedApps" -Value 1 -PropertyType DWord -Force | Out-Null
+        Write-Host "Enabled: AllowAllTrustedApps" -ForegroundColor Green
+    }
+    
+    Write-Host "Sideloading settings applied." -ForegroundColor Green
+    Write-Host ""
+}
+
 Clear-Host
 Write-Host "Win11 Shortcut in Primary Context Menu" -ForegroundColor Cyan
 Write-Host "=========================================" -ForegroundColor Cyan
 Write-Host ""
+
+# Auto-enable sideloading for trusted apps
+Enable-Sideloading
+
 Write-Host "[1] Install" -ForegroundColor Green
 Write-Host "[2] Uninstall" -ForegroundColor Yellow
 Write-Host "[Q] Quit" -ForegroundColor Gray
