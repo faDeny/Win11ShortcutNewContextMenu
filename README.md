@@ -4,7 +4,7 @@
 
 Adds a `Shortcut` entry directly to the Windows 11 primary context menu (Desktop and folder backgrounds) that opens the exact same "Create Shortcut" wizard as `New > Shortcut`.
 
-Verified on Windows 11 26H2 (build 26300). Results may vary on other builds.
+Verified on Windows 11 26H2 (build 26300) and 24H2 (build 26100). Results may vary on other builds.
 
 ## For users (quick install)
 
