@@ -1,4 +1,5 @@
 # Win11 Shortcut in Primary Context Menu
+
 <img width="277" height="458" alt="Shortcut in Windows 11 primary Context menu" src="https://github.com/user-attachments/assets/364a27b7-290d-4c3d-8ac0-2ffa07d7a56c" />
 
 Adds a `Shortcut` entry directly to the Windows 11 primary context menu (Desktop and folder backgrounds) that opens the exact same "Create Shortcut" wizard as `New > Shortcut`.
